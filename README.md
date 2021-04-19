@@ -1,0 +1,2 @@
+# cli
+Official Ectocet CLI
