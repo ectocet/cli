@@ -1,0 +1,13 @@
+{
+  "extends": ["airbnb-base", "prettier"],
+  "rules": {
+    "no-console": ["error"],
+    "no-param-reassign": [
+      "error",
+      {
+        "props": true,
+        "ignorePropertyModificationsFor": ["draft"]
+      }
+    ]
+  }
+}
