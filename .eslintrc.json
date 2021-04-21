@@ -1,7 +1,9 @@
 {
+  "parser": "@babel/eslint-parser",
   "extends": ["airbnb-base", "prettier"],
   "rules": {
     "no-console": ["error"],
+    "import/extensions": ["error", "ignorePackages"],
     "no-param-reassign": [
       "error",
       {

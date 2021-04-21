@@ -1,20 +1,26 @@
 {
   "name": "ectocet",
   "description": "Easy deployments on cost effective infrastructure",
-  "version": "1.0.0",
+  "version": "0.0.0",
   "author": "hello@ectocet.com",
   "bin": {
-    "ectocet": "./bin/run"
+    "ectocet": "./bin/run.js"
   },
-  "bugs": "https://github.com/https://github.com/ectocet/cli.git/issues",
+  "type": "module",
+  "bugs": "https://github.com/ectocet/cli/issues",
   "dependencies": {
-    "@oclif/command": "^1",
-    "@oclif/config": "^1",
-    "@oclif/plugin-help": "^3",
-    "oclif": "^1.17.0"
+    "chalk": "^4.1.0",
+    "cli-ux": "^5.5.1",
+    "dotenv": "^8.2.0",
+    "graphql": "^15.5.0",
+    "graphql-request": "^3.4.0",
+    "jwt-decode": "^3.1.2",
+    "meow": "^9.0.0"
   },
   "devDependencies": {
-    "@oclif/dev-cli": "^1",
+    "@babel/core": "^7.13.16",
+    "@babel/eslint-parser": "^7.13.14",
+    "@babel/preset-env": "^7.13.15",
     "eslint": "^7.24.0",
     "eslint-config-airbnb-base": "^14.2.1",
     "eslint-config-prettier": "^8.2.0",
@@ -24,22 +30,16 @@
     "prettier": "^2.2.1"
   },
   "engines": {
-    "node": ">=8.0.0"
+    "node": ">=12.0.0"
   },
   "files": [
     "/bin",
     "/src"
   ],
-  "homepage": "https://github.com/https://github.com/ectocet/cli.git",
+  "homepage": "https://github.com/ectocet/cli",
   "license": "Apache-2.0",
-  "main": "src/index.js",
-  "oclif": {
-    "bin": "ectocet"
-  },
   "repository": "https://github.com/ectocet/cli.git",
   "scripts": {
-    "prepack": "oclif-dev readme",
-    "version": "oclif-dev readme && git add README.md",
     "prepare": "husky install"
   },
   "lint-staged": {
