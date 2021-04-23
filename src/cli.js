@@ -23,8 +23,8 @@ const GET_DEPLOYMENT_TOKEN = gql`
 const GET_DEPLOYMENT = gql`
   query($id: UUID!) {
     deployment(id: $id) {
-      id # we need this so the API can compute postSource
       subdomain
+      status
       postSource {
         fields
         url
@@ -35,8 +35,8 @@ const GET_DEPLOYMENT = gql`
 
 const DEPLOY = gql`
   mutation($id: UUID!) {
-    deploy(input: { deploymentId: $id }) {
-      success
+    updateDeployment(input: { patch: { status: DEPLOYING }, id: $id }) {
+      clientMutationId # don't care about the result
     }
   }
 `;
@@ -74,8 +74,13 @@ export const main = async () => {
     deployment: {
       postSource: { fields, url },
       subdomain,
+      status,
     },
   } = await client.request(GET_DEPLOYMENT, { id });
+
+  if (status === "DEPLOYING")
+    fail("Already deploying, please wait deployment to finish.");
+
   actionSuccess();
 
   cli.log(`Using deployment ${blue(subdomain)}`);
@@ -102,9 +107,7 @@ export const main = async () => {
   actionSuccess();
 
   cli.action.start("Launching deployment");
-  const {
-    deploy: { success },
-  } = await client.request(DEPLOY, { id });
-  if (success) actionSuccess();
-  else fail("Already deploying");
+  await client.request(DEPLOY, { id });
+
+  actionSuccess();
 };
