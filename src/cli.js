@@ -7,6 +7,7 @@ import globby from "globby";
 import FormData from "form-data";
 import got, { HTTPError } from "got";
 import getStream from "get-stream";
+import pWaitFor from "p-wait-for";
 
 const { red, blue, green } = chalk;
 
@@ -24,7 +25,15 @@ const GET_DEPLOYMENT = gql`
   query($id: UUID!) {
     deployment(id: $id) {
       subdomain
-      status
+      builds(orderBy: CREATED_AT_DESC, first: 1) {
+        nodes {
+          result
+        }
+      }
+      team {
+        name
+        subdomain
+      }
       postSource {
         fields
         url
@@ -33,10 +42,20 @@ const GET_DEPLOYMENT = gql`
   }
 `;
 
-const DEPLOY = gql`
-  mutation($id: UUID!) {
-    updateDeployment(input: { patch: { status: DEPLOYING }, id: $id }) {
-      clientMutationId # don't care about the result
+const CREATE_BUILD = gql`
+  mutation($deploymentId: UUID!) {
+    createBuild(input: { build: { deploymentId: $deploymentId } }) {
+      build {
+        id
+      }
+    }
+  }
+`;
+
+const GET_BUILD = gql`
+  query($id: UUID!) {
+    build(id: $id) {
+      result
     }
   }
 `;
@@ -74,16 +93,19 @@ export const main = async () => {
     deployment: {
       postSource: { fields, url },
       subdomain,
-      status,
+      team,
+      builds,
     },
   } = await client.request(GET_DEPLOYMENT, { id });
 
-  if (status === "DEPLOYING")
-    fail("Already deploying, please wait deployment to finish.");
+  if (builds.nodes[0] && !builds.nodes[0].result)
+    fail(
+      "Deployment already building, please wait for it to finish before redeploying."
+    );
 
   actionSuccess();
 
-  cli.log(`Using deployment ${blue(subdomain)}`);
+  cli.log(`Using deployment ${blue(subdomain)} of team ${blue(team.name)}`);
 
   cli.action.start("Packing code");
   const packedFiles = await globby(".", {
@@ -107,7 +129,19 @@ export const main = async () => {
   actionSuccess();
 
   cli.action.start("Launching deployment");
-  await client.request(DEPLOY, { id });
-
+  const {
+    createBuild: { build },
+  } = await client.request(CREATE_BUILD, { deploymentId: id });
+  await pWaitFor(
+    async () => {
+      const {
+        build: { result },
+      } = await client.request(GET_BUILD, build);
+      if (!result) return false;
+      if (result.error) fail(`Deployement failed:\n${result.error.message}`);
+      return true;
+    },
+    { before: false, interval: 5000 }
+  );
   actionSuccess();
 };
