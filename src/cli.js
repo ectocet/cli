@@ -24,7 +24,7 @@ const GET_DEPLOYMENT_TOKEN = gql`
 const GET_DEPLOYMENT = gql`
   query($id: UUID!) {
     deployment(id: $id) {
-      subdomain
+      namespace
       builds(orderBy: CREATED_AT_DESC, first: 1) {
         nodes {
           result
@@ -32,7 +32,6 @@ const GET_DEPLOYMENT = gql`
       }
       team {
         name
-        subdomain
       }
       postSource {
         fields
@@ -92,7 +91,7 @@ export const main = async () => {
   const {
     deployment: {
       postSource: { fields, url },
-      subdomain,
+      namespace,
       team,
       builds,
     },
@@ -105,7 +104,7 @@ export const main = async () => {
 
   actionSuccess();
 
-  cli.log(`Using deployment ${blue(subdomain)} of team ${blue(team.name)}`);
+  cli.log(`Using deployment ${blue(namespace)} of team ${blue(team.name)}`);
 
   cli.action.start("Packing code");
   const packedFiles = await globby(".", {
