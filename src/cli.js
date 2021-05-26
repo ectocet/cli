@@ -9,21 +9,21 @@ import got, { HTTPError } from "got";
 import getStream from "get-stream";
 import pWaitFor from "p-wait-for";
 
-const { red, blue, green } = chalk;
+const { red, blue, green, bold, underline } = chalk;
 
 export const helpText = `
-Pushes the current folder to an Ectocet deployment. Needs ECTOCET_DEPLOY_KEY env var (will ask for it if not provided).
+Pushes the current folder to an Ectocet project. Needs ECTOCET_PROJECT_SECRET env var (will ask for it if not provided).
 `;
 
-const GET_DEPLOYMENT_TOKEN = gql`
-  query($deployKey: UUID!) {
-    getDeploymentToken(deployKey: $deployKey)
+const GET_PROJECT_TOKEN = gql`
+  query($secret: UUID!) {
+    getProjectToken(secret: $secret)
   }
 `;
 
-const GET_DEPLOYMENT = gql`
+const GET_PROJECT = gql`
   query($id: UUID!) {
-    deployment(id: $id) {
+    project(id: $id) {
       namespace
       builds(orderBy: CREATED_AT_DESC, first: 1) {
         nodes {
@@ -32,6 +32,7 @@ const GET_DEPLOYMENT = gql`
       }
       team {
         name
+        namespace
       }
       postSource {
         fields
@@ -42,8 +43,8 @@ const GET_DEPLOYMENT = gql`
 `;
 
 const CREATE_BUILD = gql`
-  mutation($deploymentId: UUID!) {
-    createBuild(input: { build: { deploymentId: $deploymentId } }) {
+  mutation($projectId: UUID!) {
+    createBuild(input: { build: { projectId: $projectId } }) {
       build {
         id
       }
@@ -73,38 +74,39 @@ const isUuid = (id) =>
   );
 
 export const main = async () => {
-  const apiOrigin = process.env.ECTOCET_ORIGIN || "https://www.ectocet.com";
+  const isDev = !!process.env._ECTOCET_DEV; // eslint-disable-line no-underscore-dangle
+  const apiOrigin = isDev ? "http://localhost:3000" : "https://www.ectocet.com";
   const client = new GraphQLClient(`${apiOrigin}/api/graphql`);
 
-  const deployKey =
-    process.env.ECTOCET_DEPLOY_KEY ||
-    (await cli.prompt("Deploy key", { type: "mask" }));
-  if (!isUuid(deployKey)) fail("Invalid deploy key");
+  const secret =
+    process.env.ECTOCET_PROJECT_SECRET ||
+    (await cli.prompt("Project secret", { type: "mask" }));
+  if (!isUuid(secret)) fail("Invalid project secret");
 
-  cli.action.start("Getting deployment info");
-  const {
-    getDeploymentToken: token,
-  } = await client.request(GET_DEPLOYMENT_TOKEN, { deployKey });
-  if (!token) fail("Invalid deploy key");
+  cli.action.start("Getting project info");
+  const { getProjectToken: token } = await client.request(GET_PROJECT_TOKEN, {
+    secret,
+  });
+  if (!token) fail("Invalid project secret");
   const id = jwtDecode(token).sub;
   client.setHeader("Authorization", `Bearer ${token}`);
   const {
-    deployment: {
+    project: {
       postSource: { fields, url },
       namespace,
       team,
       builds,
     },
-  } = await client.request(GET_DEPLOYMENT, { id });
+  } = await client.request(GET_PROJECT, { id });
 
   if (builds.nodes[0] && !builds.nodes[0].result)
     fail(
-      "Deployment already building, please wait for it to finish before redeploying."
+      "Project already building, please wait for it to finish before redeploying."
     );
 
   actionSuccess();
 
-  cli.log(`Using deployment ${blue(namespace)} of team ${blue(team.name)}`);
+  cli.log(`Using project ${blue(namespace)} of team ${blue(team.name)}`);
 
   cli.action.start("Packing code");
   const packedFiles = await globby(".", {
@@ -127,10 +129,11 @@ export const main = async () => {
   }
   actionSuccess();
 
-  cli.action.start("Launching deployment");
+  cli.action.start("Building");
   const {
     createBuild: { build },
-  } = await client.request(CREATE_BUILD, { deploymentId: id });
+  } = await client.request(CREATE_BUILD, { projectId: id });
+  let buildResult;
   await pWaitFor(
     async () => {
       const {
@@ -138,9 +141,20 @@ export const main = async () => {
       } = await client.request(GET_BUILD, build);
       if (!result) return false;
       if (result.error) fail(`Deployement failed:\n${result.error.message}`);
+      buildResult = result;
       return true;
     },
     { before: false, interval: 5000 }
   );
   actionSuccess();
+  cli.log("Done! 🚀");
+  cli.log("Services available at:");
+  const root = isDev ? "app.dev.ectocet.com" : "app.ectocet.com";
+  buildResult.serviceBuilds.forEach((service) => {
+    cli.log(
+      `- ${underline(
+        bold(`https://${service.name}-${namespace}-${team.namespace}.${root}`)
+      )}`
+    );
+  });
 };

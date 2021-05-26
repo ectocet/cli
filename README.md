@@ -29,5 +29,5 @@ yarn add --global ectocet
 ectocet
 ```
 
-It will only need the deply key of your target deployment on [Ectocet](https://www.ectocet.com).
-Pass is as `ECTOCET_DEPLOY_KEY` environment variable. You can use a `.env` file Otherwise, it will ask for it.
+It will only need the secret of your project on [Ectocet](https://www.ectocet.com).
+Pass is as `ECTOCET_PROJECT_SECRET` environment variable. You can use a `.env` file Otherwise, it will ask for it.
