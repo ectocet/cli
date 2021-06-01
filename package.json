@@ -1,7 +1,7 @@
 {
   "name": "ectocet",
   "description": "Easy deployments on cost effective infrastructure",
-  "version": "0.1.7",
+  "version": "0.1.9",
   "author": "hello@ectocet.com",
   "bin": {
     "ectocet": "./bin/run.js"

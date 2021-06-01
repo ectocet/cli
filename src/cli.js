@@ -38,6 +38,12 @@ const GET_PROJECT = gql`
         fields
         url
       }
+      services {
+        nodes {
+          id
+          name
+        }
+      }
     }
   }
 `;
@@ -96,6 +102,7 @@ export const main = async () => {
       namespace,
       team,
       builds,
+      services,
     },
   } = await client.request(GET_PROJECT, { id });
 
@@ -150,10 +157,11 @@ export const main = async () => {
   cli.log("Done! 🚀");
   cli.log("Services available at:");
   const root = isDev ? "app.dev.ectocet.com" : "app.ectocet.com";
-  buildResult.serviceBuilds.forEach((service) => {
+  buildResult.serviceBuilds.forEach(({ serviceId }) => {
+    const { name } = services.nodes.find((s) => s.id === serviceId);
     cli.log(
       `- ${underline(
-        bold(`https://${service.name}-${namespace}-${team.namespace}.${root}`)
+        bold(`https://${name}-${namespace}-${team.namespace}.${root}`)
       )}`
     );
   });
