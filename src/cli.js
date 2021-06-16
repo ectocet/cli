@@ -42,6 +42,7 @@ const GET_PROJECT = gql`
         nodes {
           id
           name
+          customDomain
         }
       }
     }
@@ -158,10 +159,16 @@ export const main = async () => {
   cli.log("Services available at:");
   const root = isDev ? "app.dev.ectocet.com" : "app.ectocet.com";
   buildResult.serviceBuilds.forEach(({ serviceId }) => {
-    const { name } = services.nodes.find((s) => s.id === serviceId);
+    const { name, customDomain } = services.nodes.find(
+      (s) => s.id === serviceId
+    );
     cli.log(
       `- ${underline(
-        bold(`https://${name}-${namespace}-${team.namespace}.${root}`)
+        bold(
+          `https://${
+            customDomain || `${name}-${namespace}-${team.namespace}.${root}`
+          }`
+        )
       )}`
     );
   });
