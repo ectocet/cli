@@ -81,8 +81,7 @@ const isUuid = (id) =>
   );
 
 export const main = async () => {
-  const isDev = !!process.env._ECTOCET_DEV; // eslint-disable-line no-underscore-dangle
-  const apiOrigin = isDev ? "http://localhost:3000" : "https://www.ectocet.com";
+  const apiOrigin = process.env.ECTOCET_API_ORIGIN || "https://www.ectocet.com";
   const client = new GraphQLClient(`${apiOrigin}/api/graphql`);
 
   const secret =
@@ -157,7 +156,9 @@ export const main = async () => {
   actionSuccess();
   cli.log("Done! 🚀");
   cli.log("Services available at:");
-  const root = isDev ? "app.dev.ectocet.com" : "app.ectocet.com";
+  const root = process.env.ECTOCET_API_ORIGIN
+    ? "app.dev.ectocet.com"
+    : "app.ectocet.com";
   buildResult.serviceBuilds.forEach(({ serviceId }) => {
     const { name, customDomain } = services.nodes.find(
       (s) => s.id === serviceId
